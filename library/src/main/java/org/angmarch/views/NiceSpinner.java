@@ -9,14 +9,14 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
-import android.support.annotation.ColorRes;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.graphics.drawable.DrawableCompat;
-import android.support.v4.view.animation.LinearOutSlowInInterpolator;
-import android.support.v7.widget.AppCompatTextView;
+import androidx.annotation.ColorRes;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
+import androidx.interpolator.view.animation.LinearOutSlowInInterpolator;
+import androidx.appcompat.widget.AppCompatTextView;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -30,7 +30,6 @@ import android.widget.PopupWindow;
 import android.widget.ListPopupWindow;
 import android.widget.ListView;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -126,7 +125,13 @@ public class NiceSpinner extends AppCompatTextView {
             if (bundle.getBoolean(IS_POPUP_SHOWING)) {
                 if (popupWindow != null) {
                     // Post the show request into the looper to avoid bad token exception
-                    post(this::showDropDown);
+//                    post(this::showDropDown);
+                    post(new Runnable() {
+                        @Override
+                        public void run() {
+                            showDropDown();
+                        }
+                    });
                 }
             }
             isArrowHidden = bundle.getBoolean(IS_ARROW_HIDDEN, false);
@@ -155,13 +160,13 @@ public class NiceSpinner extends AppCompatTextView {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // The selected item is not displayed within the list, so when the selected position is equal to
                 // the one of the currently selected item it gets shifted to the next item.
-                if (position >= selectedIndex && position < adapter.getCount()) {
-                    position++;
-                }
+//                if (position >= selectedIndex && position < adapter.getCount()) {
+//                    position++;
+//                }
                 selectedIndex = position;
 
                 if (onSpinnerItemSelectedListener != null) {
-                    onSpinnerItemSelectedListener.onItemSelected(NiceSpinner.this, view, position, id);
+                    onSpinnerItemSelectedListener.onItemSelected(NiceSpinner.this, view, selectedIndex, id);
                 }
 
                 if (onItemClickListener != null) {
@@ -284,7 +289,7 @@ public class NiceSpinner extends AppCompatTextView {
     }
 
     public Object getSelectedItem() {
-        return adapter.getItemInDataset(selectedIndex);
+        return adapter.getItem(selectedIndex);
     }
 
     public int getSelectedIndex() {
@@ -302,11 +307,19 @@ public class NiceSpinner extends AppCompatTextView {
         setArrowDrawableOrHide(arrowDrawable);
     }
 
-    private void setTextInternal(Object item) {
+    public void setTextInternal(Object item) {
         if (selectedTextFormatter != null) {
             setText(selectedTextFormatter.format(item));
         } else {
             setText(item.toString());
+        }
+        if (adapter != null) {
+            for (int position = 0; position < adapter.getCount(); position++) {
+                if (item.toString().equals(adapter.getItem(position).toString())) {
+                    selectedIndex = position;
+                    break;
+                }
+            }
         }
     }
 
@@ -326,7 +339,6 @@ public class NiceSpinner extends AppCompatTextView {
             }
         }
     }
-
 
 
     /**
@@ -361,7 +373,7 @@ public class NiceSpinner extends AppCompatTextView {
     }
 
     private <T> void setAdapterInternal(NiceSpinnerBaseAdapter<T> adapter) {
-        if (adapter.getCount() >= 0) {
+        if (adapter.getCount() > 0) {
             // If the adapter needs to be set again, ensure to reset the selected index as well
             selectedIndex = 0;
             popupWindow.setAdapter(adapter);
@@ -372,7 +384,7 @@ public class NiceSpinner extends AppCompatTextView {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (isEnabled() && event.getAction() == MotionEvent.ACTION_UP) {
-            if (!popupWindow.isShowing() && adapter.getCount() > 0) {
+            if (!popupWindow.isShowing()) {
                 showDropDown();
             } else {
                 dismissDropDown();
@@ -403,7 +415,7 @@ public class NiceSpinner extends AppCompatTextView {
         popupWindow.setAnchorView(this);
         popupWindow.show();
         final ListView listView = popupWindow.getListView();
-        if(listView != null) {
+        if (listView != null) {
             listView.setVerticalScrollBarEnabled(false);
             listView.setHorizontalScrollBarEnabled(false);
             listView.setVerticalFadingEdgeEnabled(false);
@@ -467,13 +479,14 @@ public class NiceSpinner extends AppCompatTextView {
     }
 
 
-    public void performItemClick( int position,boolean showDropdown) {
-        if(showDropdown) showDropDown();
+    public void performItemClick(int position, boolean showDropdown) {
+        if (showDropdown) showDropDown();
         setSelectedIndex(position);
     }
 
     /**
      * only applicable when popup is shown .
+     *
      * @param view
      * @param position
      * @param id
@@ -481,7 +494,7 @@ public class NiceSpinner extends AppCompatTextView {
     public void performItemClick(View view, int position, int id) {
         showDropDown();
         final ListView listView = popupWindow.getListView();
-        if(listView != null) {
+        if (listView != null) {
             listView.performItemClick(view, position, id);
         }
     }
